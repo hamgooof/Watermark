@@ -107,9 +107,6 @@
       </Properties>
     </Component>
     <Component class="javax.swing.JTextField" name="txtWatermarkLocation">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="C:\u005cUsers\u005cCheryl\u005cDesktop\u005cCherylZimmermannLogo1.png" containsInvalidXMLChars="true"/>
-      </Properties>
     </Component>
     <Component class="javax.swing.JButton" name="btnBrowseWatermark">
       <Properties>
@@ -125,9 +122,6 @@
       </Properties>
     </Component>
     <Component class="javax.swing.JTextField" name="txtImagesLocation">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="C:\u005cUsers\u005cJake\u005cPictures\u005cAfternoon Reception" containsInvalidXMLChars="true"/>
-      </Properties>
     </Component>
     <Component class="javax.swing.JButton" name="btnBrowseImages">
       <Properties>

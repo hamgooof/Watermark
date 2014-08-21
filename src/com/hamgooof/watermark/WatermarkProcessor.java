@@ -1,6 +1,5 @@
 package com.hamgooof.watermark;
 
-import java.awt.Component;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
@@ -24,12 +23,10 @@ public class WatermarkProcessor extends SwingWorker<Void, Integer> {
 
     private final List<WatermarkedImage> list;
     private Image watermark = null;
-    private Component[] reEnable;
-    private AtomicInteger counter = new AtomicInteger(1);
+    private final AtomicInteger counter = new AtomicInteger(1);
 
-    public WatermarkProcessor(List<WatermarkedImage> list, File watermark, Component... reenable) {
+    public WatermarkProcessor(List<WatermarkedImage> list, File watermark) {
         this.list = list;
-        this.reEnable = reenable;
         try {
             this.watermark = ImageIO.read(watermark);
         } catch (IOException ex) {
@@ -48,9 +45,6 @@ public class WatermarkProcessor extends SwingWorker<Void, Integer> {
             processWatermark(iter.next());
             //    System.out.println("Setting progress.");
             setProgress((int) d);
-        }
-        for (Component c : reEnable) {
-            c.setEnabled(true);
         }
         return null;
     }

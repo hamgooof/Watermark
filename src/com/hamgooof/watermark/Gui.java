@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 
 /**
@@ -28,7 +29,7 @@ public class Gui extends javax.swing.JFrame {
      * Creates new form Gui
      */
     private FileFilter imageFilter;
-
+    
     public Gui() {
         initComponents();
         imageFilter = new ImageFilter();
@@ -58,8 +59,6 @@ public class Gui extends javax.swing.JFrame {
 
         jLabel1.setText("Watermark");
 
-        txtWatermarkLocation.setText("C:\\Users\\Cheryl\\Desktop\\CherylZimmermannLogo1.png");
-
         btnBrowseWatermark.setText("Browse");
         btnBrowseWatermark.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -68,8 +67,6 @@ public class Gui extends javax.swing.JFrame {
         });
 
         jLabel2.setText("Image folder");
-
-        txtImagesLocation.setText("C:\\Users\\Jake\\Pictures\\Afternoon Reception");
 
         btnBrowseImages.setText("Browse");
         btnBrowseImages.addActionListener(new java.awt.event.ActionListener() {
@@ -160,11 +157,17 @@ public class Gui extends javax.swing.JFrame {
         }
         txtWatermarkLocation.setText(file);
     }//GEN-LAST:event_btnBrowseWatermarkActionPerformed
-
+    private void enableButtons(boolean enabled) {
+        btnBrowseImages.setEnabled(enabled);
+        btnBrowseWatermark.setEnabled(enabled);
+        btnStartProcessing.setEnabled(enabled);
+    }
     private void btnStartProcessingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStartProcessingActionPerformed
-        btnBrowseImages.setEnabled(false);
-        btnBrowseWatermark.setEnabled(false);
-        btnStartProcessing.setEnabled(false);
+        if (!new File(txtWatermarkLocation.getText()).exists()) {
+            JOptionPane.showMessageDialog(null, "Watermark image not found", "File not found", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        enableButtons(false);
         preprocess();
     }//GEN-LAST:event_btnStartProcessingActionPerformed
 
@@ -176,7 +179,7 @@ public class Gui extends javax.swing.JFrame {
         txtImagesLocation.setText(file);
     }//GEN-LAST:event_btnBrowseImagesActionPerformed
     private List<WatermarkedImage> watermarkedList = new ArrayList<WatermarkedImage>();
-
+    
     private String openFileBrowser(FileFilter filter, boolean acceptDirectories) {
         JFileChooser chooser = new JFileChooser();
         if (filter != null) {
@@ -191,7 +194,7 @@ public class Gui extends javax.swing.JFrame {
         }
         return chooser.getSelectedFile().getAbsolutePath();
     }
-
+    
     private String openFileBrowser(boolean acceptDirectories) {
         return openFileBrowser(null, acceptDirectories);
     }
@@ -251,7 +254,7 @@ public class Gui extends javax.swing.JFrame {
             getImages(file);
         } else {
             for (File f : file.listFiles(new java.io.FileFilter() {
-
+                
                 @Override
                 public boolean accept(File pathname) {
                     return !pathname.isDirectory();
@@ -262,7 +265,7 @@ public class Gui extends javax.swing.JFrame {
         }
         final WatermarkPreProcessor preprocessor = new WatermarkPreProcessor(watermarkedList, new File(txtWatermarkLocation.getText()));
         preprocessor.addPropertyChangeListener(new PropertyChangeListener() {
-
+            
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 System.out.println(String.valueOf(evt.getNewValue()));
@@ -280,8 +283,13 @@ public class Gui extends javax.swing.JFrame {
         });
         preprocessor.execute();
     }
-
+    
     private void process() {
+        if (watermarkedList.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No images found to watermark", "No images found", JOptionPane.ERROR_MESSAGE);
+            enableButtons(true);
+            return;
+        }
         if (Desktop.isDesktopSupported()) {
             try {
                 Desktop.getDesktop().browse(new File(txtImagesLocation.getText()).toURI());
@@ -289,9 +297,9 @@ public class Gui extends javax.swing.JFrame {
                 Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        final WatermarkProcessor processor = new WatermarkProcessor(watermarkedList, new File(txtWatermarkLocation.getText()), btnBrowseImages, btnBrowseWatermark, btnStartProcessing);
+        final WatermarkProcessor processor = new WatermarkProcessor(watermarkedList, new File(txtWatermarkLocation.getText()));
         processor.addPropertyChangeListener(new PropertyChangeListener() {
-
+            
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 System.out.println(evt.getPropertyName());
@@ -300,12 +308,13 @@ public class Gui extends javax.swing.JFrame {
                     jProgressBar1.setString(processor.getCounter().get() + "/" + watermarkedList.size());
                 } else if (evt.getPropertyName().equals("state") && String.valueOf(evt.getNewValue()).equalsIgnoreCase("done")) {
                     jProgressBar1.setString("Finished");
+                    enableButtons(true);
                 }
             }
         });
         processor.execute();
     }
-
+    
     private void getImages(File file) {
         for (File f : file.listFiles()) {
             if (f.isDirectory()) {
