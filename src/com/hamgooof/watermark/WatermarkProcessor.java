@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
 /**
@@ -42,8 +43,7 @@ public class WatermarkProcessor extends SwingWorker<Void, Integer> {
         for (Iterator<WatermarkedImage> iter = list.iterator(); iter.hasNext();) {
             double d = list.size();
             d = Math.min(100, 100d / d * counter.getAndAdd(1));
-            processWatermark(iter.next());
-            //    System.out.println("Setting progress.");
+            processWatermark(iter.next(), false);
             setProgress((int) d);
         }
         return null;
@@ -58,7 +58,7 @@ public class WatermarkProcessor extends SwingWorker<Void, Integer> {
         super.process(chunks); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private void processWatermark(final WatermarkedImage next) {
+    private void processWatermark(final WatermarkedImage next, boolean recheck) {
         BufferedImage bi = new BufferedImage(next.getImageDimensions().width, next.getImageDimensions().height, BufferedImage.TYPE_INT_RGB);
         try {
             Image img = ImageIO.read(next.getImgFile());
@@ -74,7 +74,11 @@ public class WatermarkProcessor extends SwingWorker<Void, Integer> {
             }
             ImageIO.write(bi, next.getImageType(), new File(next.getSaveDirectory(), next.getImgFile().getName()));
         } catch (IOException ex) {
-            Logger.getLogger(WatermarkProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            if (!recheck) {
+                processWatermark(next, true);
+            } else {
+                JOptionPane.showMessageDialog(null, next.getName() + " failed saving");
+            }
         }
     }
 

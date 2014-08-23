@@ -80,4 +80,8 @@ public class WatermarkedImage {
         return height;
     }
 
+    public String getName() {
+        return imgFile.getName().substring(0, imgFile.getName().indexOf('.'));
+    }
+
 }
