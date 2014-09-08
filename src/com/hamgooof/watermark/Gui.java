@@ -12,10 +12,13 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
@@ -28,6 +31,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
 
 /**
@@ -72,6 +76,14 @@ public class Gui extends JFrame {
                 btnStartProcessingActionPerformed();
             }
         });
+        btnSaveOptions = new JButton("Save Settings");
+        btnSaveOptions.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveSettings();
+            }
+        });
         checkBoxRecursive = new JCheckBox("Recursive");
         lblWatermark = new JLabel("Watermark Location", JLabel.CENTER);
         lblImages = new JLabel("Images location", JLabel.CENTER);
@@ -92,16 +104,51 @@ public class Gui extends JFrame {
         container.add(checkBoxRecursive);
         container.add(btnStartProcessing);
         container.add(progress);
+        container.add(btnSaveOptions);
         add(container);
         pack();
+        checkProperties();
     }
-    private JButton btnBrowseImages, btnBrowseWatermark, btnStartProcessing;
+    private JButton btnBrowseImages, btnBrowseWatermark, btnStartProcessing, btnSaveOptions;
     private JCheckBox checkBoxRecursive;
     private JLabel lblWatermark, lblImages;
     private JProgressBar progress;
     private JTextField txtImagesLocation, txtWatermarkLocation;
 
+    private void saveSettings() {
+        FileOutputStream fos = null;
+        try {
+            File file = new File("WatermarkSettings.xml");
+            fos = new FileOutputStream(file);
+            Properties properties = new Properties();
+            properties.setProperty("WatermarkLocation", txtWatermarkLocation.getText());
+            properties.setProperty("ImageLocation", txtImagesLocation.getText());
+            properties.setProperty("Recursive", String.valueOf(checkBoxRecursive.isSelected()));
+            properties.storeToXML(fos, "Saved settings for watermarking images");
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
     public static void main(String[] args) {
+        for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+            System.out.println(info.getName());
+            if ("Windows".equals(info.getName())) {
+                try {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
+                    Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
         SwingUtilities.invokeLater(new Runnable() {
 
             @Override
@@ -187,19 +234,14 @@ public class Gui extends JFrame {
                 if ("progress".equals(evt.getPropertyName())) {
                     progress.setValue((Integer) evt.getNewValue());
                 } else if (evt.getPropertyName().equals("state") && String.valueOf(evt.getNewValue()).equalsIgnoreCase("DONE")) {
-                    try {
-                        watermarkedList = preprocessor.get();
-                    } catch (InterruptedException | ExecutionException ex) {
-                        Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    process();
+                    process(preprocessor);
                 }
             }
         });
         preprocessor.execute();
     }
 
-    private void process() {
+    private void process(WatermarkPreProcessor preProcessor) {
         if (watermarkedList.isEmpty()) {
             JOptionPane.showMessageDialog(null, "No images found to watermark", "No images found", JOptionPane.ERROR_MESSAGE);
             enableButtons(true);
@@ -212,7 +254,7 @@ public class Gui extends JFrame {
                 Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        final WatermarkProcessor processor = new WatermarkProcessor(watermarkedList, new File(txtWatermarkLocation.getText()));
+        final WatermarkProcessor processor = new WatermarkProcessor(preProcessor, new File(txtWatermarkLocation.getText()));
         processor.addPropertyChangeListener(new PropertyChangeListener() {
 
             @Override
@@ -223,6 +265,7 @@ public class Gui extends JFrame {
                 } else if (evt.getPropertyName().equals("state") && String.valueOf(evt.getNewValue()).equalsIgnoreCase("done")) {
                     progress.setString("Finished");
                     enableButtons(true);
+                    watermarkedList.clear();
                 }
             }
         });
@@ -235,6 +278,31 @@ public class Gui extends JFrame {
                 getImages(f);
             } else if (imageFilter.accept(f)) {
                 watermarkedList.add(new WatermarkedImage(f));
+            }
+        }
+    }
+
+    private void checkProperties() {
+        File file = new File("WatermarkSettings.xml");
+        FileInputStream fis = null;
+        if (file.exists()) {
+            try {
+                Properties properties = new Properties();
+                fis = new FileInputStream(file);
+                properties.loadFromXML(fis);
+                txtWatermarkLocation.setText(properties.getProperty("WatermarkLocation"));
+                txtImagesLocation.setText(properties.getProperty("ImageLocation"));
+                checkBoxRecursive.setSelected(Boolean.valueOf(properties.getProperty("Recursive")));
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+            } finally {
+                try {
+                    fis.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(Gui.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }
     }
