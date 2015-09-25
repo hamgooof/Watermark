@@ -15,63 +15,80 @@ import javax.swing.SwingWorker;
  *
  * @author Jake
  */
-public class WatermarkPreProcessor extends SwingWorker<List<WatermarkedImage>, Integer> {
+public class WatermarkPreProcessor extends
+		SwingWorker<List<WatermarkedImage>, Integer> {
 
-    private final List<WatermarkedImage> list;
-    private final Dimension watermark;
+	private static List<WatermarkedImage> list;
+	private final Dimension watermark;
 
-    public WatermarkPreProcessor(List<WatermarkedImage> list, File watermark) {
-        this.list = list;
-        this.watermark = getDimension(new WatermarkedImage(watermark));
-    }
+	public WatermarkPreProcessor(List<WatermarkedImage> list, File watermark) {
+		WatermarkPreProcessor.list = list;
+		this.watermark = getDimension(new WatermarkedImage(watermark));
+	}
 
-    @Override
-    protected List<WatermarkedImage> doInBackground() throws Exception {
-        int counter = 1;
-        for (Iterator<WatermarkedImage> iter = list.iterator(); iter.hasNext();) {
-            double d = list.size();
-            d = Math.min(100, 100d / d * counter++);
-            processWatermark(iter.next());
-            setProgress((int) d);
-        }
-        return list;
-    }
-    private final double perc = 0.2;
+	@Override
+	protected List<WatermarkedImage> doInBackground() throws Exception {
+		int counter = 1;
+		for (Iterator<WatermarkedImage> iter = list.iterator(); iter.hasNext();) {
+			double d = list.size();
+			d = Math.min(100, 100d / d * counter++);
+			processWatermark(iter.next());
+			setProgress((int) d);
+			System.out.println("Progress " + d + " counter " + counter);
+		}
+		System.out.println("Returning list");
+		return list;
+	}
 
-    private void processWatermark(final WatermarkedImage next) {
-        Dimension d = getDimension(next);
-        double newWidth, newHeight;
-        if (d.getWidth() > d.getHeight()) {
-            //Landscape
-            newWidth = (d.getWidth() * perc);
-            newHeight = (newWidth / watermark.getWidth()) * watermark.getHeight();
-        } else {
-            //Portrait
-            newHeight = (d.getHeight() * perc);
-            newWidth = (newHeight / watermark.getHeight()) * watermark.getWidth();
-        }
-        if (newWidth < watermark.getWidth() || newHeight < watermark.getHeight()) {
-            newWidth = watermark.getWidth();
-            newHeight = watermark.getHeight();
-        }
-        next.setImageDimensions(d);
-        next.setWatermarkPosition(10, (int) ((d.getHeight() - 10) - newHeight), (int) newWidth, (int) newHeight);
-    }
+	private final static double heightPerc = 0.2, widthPerc = 0.35;
 
-    private Dimension getDimension(WatermarkedImage next) {
-        Dimension dimension = null;
-        Iterator<ImageReader> iter = ImageIO.getImageReadersBySuffix(next.getImageType());
-        if (iter.hasNext()) {
-            ImageReader imageReader = iter.next();
-            try {
-                imageReader.setInput(new FileImageInputStream(next.getImgFile()));
-                dimension = new Dimension(imageReader.getWidth(imageReader.getMinIndex()), imageReader.getHeight(imageReader.getMinIndex()));
-            } catch (IOException e) {
-                e.printStackTrace(System.err);
-            } finally {
-                imageReader.dispose();
-            }
-        }
-        return dimension;
-    }
+	public synchronized static List<WatermarkedImage> getList() {
+		return list;
+	}
+
+	private void processWatermark(final WatermarkedImage next) {
+		Dimension d = getDimension(next);
+		double newWidth, newHeight;
+		System.out.println("Preprocessing: " + next.getName());
+		if (d.getWidth() > d.getHeight()) {
+			// Landscape
+			newWidth = (d.getWidth() * widthPerc);
+			newHeight = (newWidth / watermark.getWidth())
+					* watermark.getHeight();
+		} else {
+			// Portrait
+			newHeight = (d.getHeight() * heightPerc);
+			newWidth = (newHeight / watermark.getHeight())
+					* watermark.getWidth();
+		}
+		if (newWidth < watermark.getWidth()
+				|| newHeight < watermark.getHeight()) {
+			newWidth = watermark.getWidth();
+			newHeight = watermark.getHeight();
+		}
+		next.setImageDimensions(d);
+		next.setWatermarkPosition(10, (int) ((d.getHeight() - 10) - newHeight),
+				(int) newWidth, (int) newHeight);
+	}
+
+	private Dimension getDimension(WatermarkedImage next) {
+		Dimension dimension = null;
+		Iterator<ImageReader> iter = ImageIO.getImageReadersBySuffix(next
+				.getImageType());
+		if (iter.hasNext()) {
+			ImageReader imageReader = iter.next();
+			try {
+				imageReader
+						.setInput(new FileImageInputStream(next.getImgFile()));
+				dimension = new Dimension(imageReader.getWidth(imageReader
+						.getMinIndex()), imageReader.getHeight(imageReader
+						.getMinIndex()));
+			} catch (IOException e) {
+				e.printStackTrace(System.err);
+			} finally {
+				imageReader.dispose();
+			}
+		}
+		return dimension;
+	}
 }

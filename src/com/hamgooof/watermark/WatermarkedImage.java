@@ -61,7 +61,7 @@ public class WatermarkedImage {
      * @return The image file-type i.e. jpg, png, gif
      */
     public String getImageType() {
-        return imgFile.getName().substring(imgFile.getName().indexOf('.') + 1);
+        return imgFile.getName().substring(imgFile.getName().lastIndexOf('.') + 1);
     }
 
     public int getWatermarkYPos() {
@@ -81,7 +81,7 @@ public class WatermarkedImage {
     }
 
     public String getName() {
-        return imgFile.getName().substring(0, imgFile.getName().indexOf('.'));
+        return imgFile.getName().substring(0, imgFile.getName().lastIndexOf('.'));
     }
 
 }
